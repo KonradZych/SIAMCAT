@@ -4,6 +4,7 @@
 ### Heidelberg 2012-2018 GNU GPL 3.0
 
 #' @title Read feature file
+#'
 #' @description This file reads in the tsv file with features and
 #' converts it into a matrix.
 #'
@@ -14,27 +15,31 @@
 #' the first column should contain feature labels (e.g. taxonomic identifiers).
 #' The remaining entries are expected to be real values \code{>= 0} that
 #' quantify the abundance of each feature in each sample.
+#'
 #' @param fn.in.feat name of the tsv file containing features
+#'
+#' @param transpose should the features table be transposed?
+#'
 #' @param verbose control output: \code{0} for no output at all, \code{1}
 #'     for information about progress and time, defaults to \code{0}
+#'
 #' @export
+#'
 #' @return \code{otu_table} containing features from the file
+#'
 #' @examples
 #'     # run with example data
-#'     fn.feat <- system.file('extdata',
-#'     'feat_crc_study-pop-I_N141_tax_profile_mocat_bn_specI_clusters.tsv',
+#'     fn.feat <- system.file('extdata', 'feat_crc_zeller_msb_mocat_specI.tsv',
 #'     package = 'SIAMCAT')
 #'
 #'     features <- read.features(fn.feat)
-read.features <- function(fn.in.feat, verbose = 0) {
+read.features <- function(fn.in.feat, transpose = FALSE, verbose = 0) {
     if (verbose > 1)
         message("+ starting read.features")
     s.time <- proc.time()[3]
     if (is.null(fn.in.feat))
         stop("Filename for features file not provided!\n")
-    if (!file.exists(fn.in.feat))
-        stop("Feature file ", fn.in.feat, " does not exist!\n")
-    
+
     feat <- read.table(
         file = fn.in.feat,
         sep = "\t",
@@ -45,8 +50,10 @@ read.features <- function(fn.in.feat, verbose = 0) {
         encoding = "latin1"
     )
     feat <- as.matrix(feat)
+    if(transpose) feat <- t(feat)
+
     featNames <- make.names(rownames(feat))
-    
+
     if (any(rownames(feat) != featNames)) {
         message(
             "The provided feature names were not semantically correct for
@@ -65,6 +72,7 @@ read.features <- function(fn.in.feat, verbose = 0) {
 }
 
 #' @title Read labels file
+#'
 #' @description This file reads in the tsv file with labels and converts it
 #' into a label object.
 #'
@@ -79,7 +87,9 @@ read.features <- function(fn.in.feat, verbose = 0) {
 #' Note: Labels can take other numeric values (but not characters or strings);
 #' importantly, the label for cases has to be greater than the one for controls
 #' @param fn.in.label name of the tsv file containing labels
+#'
 #' @export
+#'
 #' @return label object containing several entries:\itemize{
 #' \item \code{$label} named vector containing the numerical labels from the
 #' file;
@@ -94,18 +104,16 @@ read.features <- function(fn.in.feat, verbose = 0) {
 #' \code{FALSE} otherwise);
 #' \item \code{$p.lab} label for cases, e.g. \code{cancer}
 #'}
+#'
 #' @examples
 #'     # run with example data
-#' fn.label <- system.file('extdata',
-#' 'label_crc_study-pop-I_N141_tax_profile_mocat_bn_specI_clusters.tsv',
+#' fn.label <- system.file('extdata', 'label_crc_zeller_msb_mocat_specI.tsv',
 #'     package = 'SIAMCAT')
 #'
 #' labels <- read.labels(fn.label)
 read.labels <- function(fn.in.label) {
     if (is.null(fn.in.label))
         stop("Filename for labels file not provided!\n")
-    if (!file.exists(fn.in.label))
-        stop("Label file ", fn.in.label, " does not exist!\n")
     label <-
         read.table(
             file = fn.in.label,
@@ -130,7 +138,7 @@ read.labels <- function(fn.in.label) {
     namesL <- colnames(label)
     label <- as.numeric(label)
     names(label) <- namesL
-    
+
     # Check general suitablity of supplied dataset
     classes <- unique(label)
     for (i in classes) {
@@ -151,13 +159,13 @@ read.labels <- function(fn.in.label) {
                     "training examples of class",
                     i,
                     " . Note that a dataset this
-                    small/skewed is not necessarily suitable for analysis in 
+                    small/skewed is not necessarily suitable for analysis in
                     this pipeline."
                 )
                 )
         }
         }
-    
+
     # Check label header!
     con <- file(fn.in.label, "rt")
     header <- readLines(con, 1)
@@ -170,15 +178,15 @@ read.labels <- function(fn.in.label) {
     stopifnot(label$info$type == "BINARY")
     label$positive.lab <- max(label$info$class.descr)
     label$negative.lab <- min(label$info$class.descr)
-    
+
     label$n.idx <- label$label == label$negative.lab
     label$n.lab <- gsub("[_.-]", " ", names(label$info$class.descr)
         [label$info$class.descr == label$negative.lab])
-    
+
     label$p.idx <- label$label == label$positive.lab
     label$p.lab <- gsub("[_.-]", " ", names(label$info$class.descr)
         [label$info$class.descr == label$positive.lab])
-    
+
     labelRes <-
         label(
             list(
@@ -197,6 +205,7 @@ read.labels <- function(fn.in.label) {
         }
 
 #' @title Read metadata file
+#'
 #' @description This file reads in the tsv file with numerical metadata and
 #' converts it into a matrix.
 #'
@@ -206,13 +215,17 @@ read.labels <- function(fn.in.label) {
 #'
 #' Metadata may be optional for the SIAMCAT workflow, but are necessary for
 #' heatmap displays, see \link{model.interpretation.plot}
+#'
 #' @param fn.in.meta name of the tsv file containing metadata
+#'
 #' @export
+#'
 #' @return \code{sample_data} object
+#'
 #' @examples
 #'     # run with example data
 #' fn.meta  <- system.file('extdata',
-#' 'num_metadata_crc_study-pop-I_N141_tax_profile_mocat_bn_specI_clusters.tsv',
+#' 'num_metadata_crc_zeller_msb_mocat_specI.tsv',
 #' package = 'SIAMCAT')
 #'
 #' meta_data <- read.meta(fn.meta)
@@ -224,8 +237,6 @@ read.meta <- function(fn.in.meta) {
         warning("Filename for metadata file not provided, continuing
             without it.\n")
     } else {
-        if (!file.exists(fn.in.meta))
-            stop("Metadata file ", fn.in.meta, " does not exist!\n")
         meta <-
             read.table(
                 file = fn.in.meta,
@@ -249,17 +260,21 @@ trim <- function(x) {
 }
 
 #' @title Parse label header
+#'
 #' @description This function parses the header of a label file
+#'
 #' @param  label.header - string in the format: #<TYPE>:<L1>=<class1>;
 #' <L2>=<class2>[;<L3>=<class3>] where <TYPE> is a string specifying the type
 #' of label variable such as BINARY (for binary classification), CATEGORICAL
 #' (for multi-class classification), or CONTINUOUS (for regression)
 #' <L1> is a short numeric label for the first class with description <class1>
 #' (similarly for the other classes)
+#'
 #' @return a list with tow items \itemize{
 #' \item \code{$type} type of the label: BINARY CONTINUOUS or CATEGORICAL
 #' \item \code{$class.descr} lables and information on what do they mean
 #'}
+#'
 #' @keywords internal
 parse.label.header <- function(label.header) {
     s <- strsplit(label.header, ":")[[1]]
@@ -272,67 +287,9 @@ parse.label.header <- function(label.header) {
     class.descr <-
         as.numeric(class.descr[seq(1, length(class.descr) - 1, 2)])
     names(class.descr) <- l
-    
+
     label.info <- list()
     label.info$type <- type
     label.info$class.descr <- class.descr
     return(label.info)
-}
-
-#' @title create a label object from metadata
-#' @description This function creates a label object from metadata
-#' @param meta metadata as read by \link{read.meta}
-#' of \link[phyloseq]{sample_data-class}
-#' @param column name of column that will be used
-#' to create the label
-#' @keywords internal
-#' @return an object of class \link{label-class}
-#' @examples
-#'     data(siamcat_example)
-#'     label <- create.label.from.metadata(meta(siamcat_example),"gender")
-#'
-#' @export
-create.label.from.metadata <- function(meta, column) {
-    if (!column %in% colnames(meta))
-        stop("ERROR: Column ", column, " not found in the metadata\n")
-    metaColumn <- vapply(meta[, column], as.character,
-        FUN.VALUE = character(nrow(meta)))
-    if (!length(unique(metaColumn)) == 2)
-        stop("ERROR: Column ", column, " does not contain binary label\n")
-    label <-
-        list(
-            label = rep(-1, length(metaColumn)),
-            positive.lab = 1,
-            negative.lab = (-1)
-        )
-    label$n.lab <- gsub("[_.-]", " ", unique(metaColumn)[1])
-    label$p.lab <- gsub("[_.-]", " ", unique(metaColumn)[2])
-    class.descr <- c(-1, 1)
-    names(class.descr) <- c(label$n.lab, label$p.lab)
-    
-    names(label$label) <- rownames(meta)
-    label$header <-
-        paste0("#BINARY:1=", label$p.lab, ";-1=", label$n.lab)
-    label$label[which(metaColumn == unique(metaColumn)[2])] <- 1
-    
-    label$n.idx <- label$label == label$negative.lab
-    label$p.idx <- label$label == label$positive.lab
-    
-    label$info <- list(type = "BINARY", class.descr = class.descr)
-    
-    labelRes <-
-        label(
-            list(
-                label = label$label,
-                header = label$header,
-                info = label$info,
-                positive.lab = label$positive.lab,
-                negative.lab = label$negative.lab,
-                n.idx = label$n.idx,
-                p.idx = label$p.idx,
-                n.lab = label$n.lab,
-                p.lab = label$p.lab
-            )
-        )
-    return(labelRes)
 }
